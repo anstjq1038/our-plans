@@ -1,0 +1,21 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 투표: 누구나 읽고 쓰기 가능 (친구들 투표용)
+    match /trips/{tripId}/votes/{doc} {
+      allow read, write: if true;
+    }
+
+    // 댓글: 누구나 읽기/작성 가능, 수정·삭제는 불가 (변조 방지)
+    match /trips/{tripId}/comments/{doc} {
+      allow read, create: if true;
+      allow update, delete: if false;
+    }
+
+    // 그 외 모든 경로는 차단
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
