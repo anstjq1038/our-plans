@@ -212,6 +212,7 @@ function Days({ p }: { p: Plan }) {
         </nav>
       )}
       <p className="mb-3.5 text-sm text-ink2">{d.date ? `${fmtDate(d.date)} — ${d.theme}` : d.theme}</p>
+      <DayMap key={i} events={d.events} />
       <ol>
         {d.events.map((e, n) => {
           const color = TYPE_COLORS[e.type] || "var(--color-muted)";
@@ -235,7 +236,6 @@ function Days({ p }: { p: Plan }) {
           );
         })}
       </ol>
-      <DayMap key={i} events={d.events} />
     </Card>
   );
 }

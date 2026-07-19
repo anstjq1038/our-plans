@@ -88,6 +88,7 @@ export function PhotosPane({ planId }: { planId: string }) {
       <AnimatePresence>
         {viewer && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onPointerDownCapture={(e) => e.stopPropagation()}
             className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/90 p-4"
             onClick={() => setViewer(null)}>
             <motion.img initial={{ scale: 0.92 }} animate={{ scale: 1 }} src={viewer.data} alt=""

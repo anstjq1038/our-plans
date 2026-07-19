@@ -1,4 +1,6 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { mapUrl } from "../lib/util";
 
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
@@ -28,11 +30,43 @@ export function StatusBadge({ status }: { status?: string }) {
   return <span className={`rounded-full px-2.5 py-0.5 text-[0.7rem] font-bold ${cls}`}>{status}</span>;
 }
 
-export function MapLink({ q, label = "📍 지도에서 보기" }: { q: string; label?: string }) {
+// 앱 안에서 바로 보는 지도 뷰어 (구글 임베드 — iframe 허용됨)
+// 네이버 지도는 iframe을 정상 지원하지 않아 외부 열기 버튼으로 제공
+export function MapLink({ q, label = "📍 지도 보기" }: { q: string; label?: string }) {
+  const [open, setOpen] = useState(false);
   return (
-    <a href={"https://map.naver.com/p/search/" + encodeURIComponent(q)} target="_blank" rel="noopener noreferrer"
-      className="mt-1.5 inline-block rounded-full border border-hairline px-3 py-1 text-xs font-semibold text-accent active:scale-95 transition">
-      {label}
-    </a>
+    <>
+      <button onClick={() => setOpen(true)}
+        className="mt-1.5 inline-block rounded-full border border-hairline px-3 py-1 text-xs font-semibold text-accent active:scale-95 transition">
+        {label}
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onPointerDownCapture={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-[100] flex items-end justify-center bg-black/60 sm:items-center"
+            onClick={() => setOpen(false)}>
+            <motion.div
+              initial={{ y: 60 }} animate={{ y: 0 }} exit={{ y: 60 }}
+              transition={{ type: "spring", damping: 28, stiffness: 350 }}
+              className="w-full overflow-hidden rounded-t-2xl bg-surface sm:max-w-lg sm:rounded-2xl"
+              onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between gap-2 px-4 py-3">
+                <b className="min-w-0 truncate text-sm">📍 {q}</b>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <a href={mapUrl(q)} target="_blank" rel="noopener noreferrer"
+                    className="rounded-full border border-hairline px-3 py-1 text-xs font-semibold text-accent">네이버 지도 ↗</a>
+                  <button onClick={() => setOpen(false)}
+                    className="rounded-full border border-hairline px-3 py-1 text-xs font-semibold text-muted">닫기</button>
+                </div>
+              </div>
+              <iframe
+                src={`https://www.google.com/maps?q=${encodeURIComponent(q)}&output=embed&hl=ko`}
+                className="h-[58vh] w-full border-0" loading="lazy" title={q} />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

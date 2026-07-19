@@ -77,6 +77,7 @@ export function CommentsCard({ planId }: { planId: string }) {
   const { comments, add, remove } = useComments(planId);
   const [text, setText] = useState("");
   const [replyTo, setReplyTo] = useState<{ id: string; name: string } | null>(null);
+  const [shown, setShown] = useState(10); // 페이징: 처음 10개 스레드만
 
   const { roots, byParent } = useMemo(() => {
     const roots = comments.filter((c) => !c.replyTo).sort((a, b) => (b.ts || 0) - (a.ts || 0));
@@ -134,12 +135,18 @@ export function CommentsCard({ planId }: { planId: string }) {
       <ul className="mt-4">
         {roots.length === 0 && <li className="py-2 text-sm text-muted">아직 의견이 없어요. 첫 의견을 남겨보세요!</li>}
         <AnimatePresence initial={false}>
-          {roots.map((r) => (
+          {roots.slice(0, shown).map((r) => (
             <FragmentThread key={r.id} root={r} replies={byParent[r.id] || []}
               mine={mine} onReply={(c) => setReplyTo({ id: c.id, name: c.name })} onDelete={del} />
           ))}
         </AnimatePresence>
       </ul>
+      {roots.length > shown && (
+        <button onClick={() => setShown((s) => s + 20)}
+          className="mt-2 w-full rounded-xl border border-hairline py-2.5 text-sm font-semibold text-ink2 transition active:scale-[0.98]">
+          의견 더 보기 ({roots.length - shown}개 남음)
+        </button>
+      )}
     </Card>
   );
 }
