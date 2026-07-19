@@ -2,7 +2,7 @@
 
 Claude Code와 대화하며 여행·모임 계획을 짜고, 친구들과 웹 대시보드로 공유하는 프로젝트.
 
-**공개 주소**: https://anstjq1038.github.io/jeju-travel-planner/
+**공개 주소**: https://anstjq1038.github.io/our-plans/
 
 ## 화면 구성
 

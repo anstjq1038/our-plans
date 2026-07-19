@@ -4,7 +4,7 @@
 // Firestore 실시간 통신은 건드리지 않음 (same-origin GET만 캐시)
 // ============================================================
 
-const CACHE = "plan-cache-v2";
+const CACHE = "plan-cache-v3";
 
 self.addEventListener("install", () => {
   self.skipWaiting();

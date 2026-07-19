@@ -19,8 +19,9 @@
   --c5: #4a3aa7;  /* violet */
   --c6: #e34948;  /* red */
 
-  --radius: 14px;
-  --shadow: 0 1px 3px rgba(11, 11, 11, 0.06);
+  --radius: 16px;
+  --shadow: 0 1px 2px rgba(11, 11, 11, 0.04), 0 4px 16px rgba(11, 11, 11, 0.05);
+  --shadow-lift: 0 4px 8px rgba(11, 11, 11, 0.06), 0 12px 28px rgba(11, 11, 11, 0.10);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -44,6 +45,7 @@
     --c6: #e66767;
 
     --shadow: none;
+    --shadow-lift: 0 0 0 1px rgba(255, 255, 255, 0.14);
   }
 }
 
@@ -774,6 +776,116 @@ input:focus, textarea:focus { outline: 2px solid var(--accent); border-color: tr
   border-radius: 50%;
   object-fit: cover;
   vertical-align: middle;
+}
+
+/* ════════════════════════════════════════════
+   모던 디자인 & 애니메이션 레이어
+   ════════════════════════════════════════════ */
+
+/* --- 등장 애니메이션 --- */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes popIn {
+  0%   { opacity: 0; transform: scale(.92); }
+  70%  { transform: scale(1.02); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes barGrow {
+  from { width: 0; }
+}
+
+/* 홈: 카드가 순서대로 떠오름 */
+.plan-card {
+  animation: fadeUp .45s cubic-bezier(.2,.7,.2,1) both;
+  animation-delay: calc(var(--n, 0) * 70ms);
+}
+.hero h1 { animation: fadeUp .5s cubic-bezier(.2,.7,.2,1) both; }
+.hero-sub { animation: fadeUp .5s .08s cubic-bezier(.2,.7,.2,1) both; }
+
+/* 상세: 탭 전환 시 섹션 페이드 (JS가 .fade-in 재적용) */
+.fade-in { animation: fadeUp .35s cubic-bezier(.2,.7,.2,1) both; }
+
+/* 요약 타일 순차 등장 */
+.stat { animation: popIn .4s cubic-bezier(.2,.7,.2,1) both; }
+.stat:nth-child(1) { animation-delay: .02s; }
+.stat:nth-child(2) { animation-delay: .08s; }
+.stat:nth-child(3) { animation-delay: .14s; }
+.stat:nth-child(4) { animation-delay: .20s; }
+
+/* 타임라인 항목 순차 등장 */
+.timeline li {
+  animation: fadeUp .4s cubic-bezier(.2,.7,.2,1) both;
+  animation-delay: calc(var(--n, 0) * 50ms);
+}
+
+/* 예산 막대가 자라남 */
+.budget-fill { animation: barGrow .7s cubic-bezier(.2,.7,.2,1) both; }
+.budget-row:nth-child(2) .budget-fill { animation-delay: .07s; }
+.budget-row:nth-child(3) .budget-fill { animation-delay: .14s; }
+.budget-row:nth-child(4) .budget-fill { animation-delay: .21s; }
+.budget-row:nth-child(5) .budget-fill { animation-delay: .28s; }
+.budget-row:nth-child(6) .budget-fill { animation-delay: .35s; }
+
+/* --- 인터랙션 (호버/프레스) --- */
+.plan-card {
+  transition: transform .2s cubic-bezier(.2,.7,.2,1), box-shadow .2s, border-color .2s;
+}
+.plan-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lift);
+}
+.plan-card:active { transform: scale(.985); }
+
+.card { transition: box-shadow .25s; }
+
+.btn, .day-tab, .poll-option, .link-row, .map-link, .reply-btn, .del-btn {
+  transition: transform .12s ease, background .15s, border-color .15s, color .15s, box-shadow .15s;
+}
+.btn:active, .day-tab:active { transform: scale(.96); }
+.link-row:hover { transform: translateX(2px); }
+.link-row:active { transform: scale(.99); }
+
+.checklist input { transition: transform .12s; }
+.checklist input:checked { transform: scale(1.1); }
+
+/* 하단 탭: 활성 표시 + 아이콘 팝 */
+.nav-btn { transition: color .18s; }
+.nav-btn .nav-icon { transition: transform .18s cubic-bezier(.2,.7,.2,1); }
+.nav-btn.active .nav-icon { transform: translateY(-2px) scale(1.12); }
+.nav-btn.active::after {
+  content: "";
+  display: block;
+  width: 18px; height: 3px;
+  border-radius: 2px;
+  background: var(--accent);
+  margin-top: 2px;
+  animation: popIn .25s both;
+}
+
+/* 상태 배지 살짝 숨쉬기 (예약중만) */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .55; }
+}
+.status.s-booking { animation: pulse 2.4s ease-in-out infinite; }
+
+/* 히어로 타이틀 그라데이션 */
+.hero h1 {
+  background: linear-gradient(120deg, var(--ink) 30%, var(--accent) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* 접근성: 움직임 최소화 설정 시 애니메이션 끔 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* ============ 푸터 ============ */

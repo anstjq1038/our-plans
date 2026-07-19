@@ -150,9 +150,9 @@
       b.addEventListener("click", () => { filter = b.dataset.t; renderHome(); }));
 
     const list = filter === "전체" ? PLANS : PLANS.filter((p) => p.type === filter);
-    $("plan-grid").innerHTML = list.map((p) => {
+    $("plan-grid").innerHTML = list.map((p, i) => {
       const dd = ddayOf(p);
-      return `<a class="plan-card" href="#/p/${encodeURIComponent(p.id)}">
+      return `<a class="plan-card" style="--n:${i}" href="#/p/${encodeURIComponent(p.id)}">
         <div class="pc-top">
           <span class="pc-emoji">${p.emoji || "🗓️"}</span>
           <span class="status ${STATUS_CLASS[p.status] || ""}">${esc(p.status || "")}</span>
@@ -194,7 +194,17 @@
     PANES.forEach((pane) => {
       pane.ids.forEach((id) => {
         const el = $(id);
-        if (el) el.hidden = !(el.dataset.has === "1" && pane.key === activePane);
+        if (!el) return;
+        const on = el.dataset.has === "1" && pane.key === activePane;
+        if (on && el.hidden) {
+          // 새로 나타나는 섹션: 등장 애니메이션 재생
+          el.hidden = false;
+          el.classList.remove("fade-in");
+          void el.offsetWidth; // 리플로우로 애니메이션 리셋
+          el.classList.add("fade-in");
+        } else {
+          el.hidden = !on;
+        }
       });
     });
 
@@ -308,9 +318,9 @@
 
     const d = p.days[activeDay];
     $("day-theme").textContent = d.date ? `${fmtDate(d.date)} — ${d.theme}` : d.theme;
-    $("timeline").innerHTML = d.events.map((e) => {
+    $("timeline").innerHTML = d.events.map((e, i) => {
       const color = TYPE_COLORS[e.type] || "var(--muted)";
-      return `<li>
+      return `<li style="--n:${i}">
         <span class="time">${esc(e.time)}</span>
         <span class="dotcol"><span class="dot" style="--dot:${color}"></span></span>
         <div class="body">
