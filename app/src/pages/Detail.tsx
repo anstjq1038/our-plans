@@ -1,13 +1,13 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { PLANS } from "../data/plans";
 import type { Plan, PlanDay } from "../types";
-import { TYPE_COLORS, dateText, ddayOf, fmtDate, won } from "../lib/util";
+import { TYPE_COLORS, dateText, ddayOf, fmtDate, mapUrl, won } from "../lib/util";
 import { Card, MapLink, StatusBadge, Tag } from "../components/ui";
 import { AuthCard, CommentsCard } from "../components/Comments";
 import { SettlementCard } from "../components/Settlement";
-import { DayMap } from "../components/DayMap";
+import { DayMap, type DayMapHandle } from "../components/DayMap";
 import { PhotosPane } from "../components/Photos";
 import { useComments } from "../hooks/useComments";
 
@@ -197,6 +197,8 @@ function Overview({ p }: { p: Plan }) {
 function Days({ p }: { p: Plan }) {
   const [i, setI] = useState(0);
   const d: PlanDay = p.days![i];
+  const mapApi = useRef<DayMapHandle>(null);
+  const gmapsUrl = (q: string) => "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(q);
   return (
     <Card>
       <h2 className="mb-3 text-[1.05rem] font-bold">📅 일정</h2>
@@ -212,13 +214,14 @@ function Days({ p }: { p: Plan }) {
         </nav>
       )}
       <p className="mb-3.5 text-sm text-ink2">{d.date ? `${fmtDate(d.date)} — ${d.theme}` : d.theme}</p>
-      <DayMap key={i} events={d.events} />
+      <DayMap key={i} ref={mapApi} events={d.events} />
       <ol>
         {d.events.map((e, n) => {
           const color = TYPE_COLORS[e.type] || "var(--color-muted)";
           return (
             <motion.li key={`${i}-${n}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: n * 0.045 }}
-              className="grid grid-cols-[44px_12px_1fr] gap-2 pb-4 last:pb-0">
+              onClick={e.geo ? () => mapApi.current?.focusEvent(n) : undefined}
+              className={`grid grid-cols-[44px_12px_1fr] gap-2 pb-4 last:pb-0 ${e.geo ? "cursor-pointer rounded-lg transition active:bg-page" : ""}`}>
               <span className="pt-0.5 text-right text-xs tabular-nums text-muted">{e.time}</span>
               <span className="relative">
                 <span className="relative top-1 z-10 block h-2.5 w-2.5 rounded-full border-2 border-surface outline outline-1 outline-hairline" style={{ background: color }} />
@@ -228,9 +231,17 @@ function Days({ p }: { p: Plan }) {
                 <div className="text-[0.95rem] font-semibold">
                   {e.title}
                   <span className="ml-1.5 rounded-full px-2 py-px align-middle text-[0.68rem] font-semibold text-white" style={{ background: color }}>{e.type}</span>
+                  {e.geo && <span className="ml-1 align-middle text-[0.7rem] text-muted">🧭</span>}
                 </div>
                 {e.note && <div className="text-[0.82rem] text-ink2">{e.note}</div>}
-                {e.map && <MapLink q={e.map} />}
+                {e.map && (
+                  <div className="mt-1.5 flex gap-1.5" onClick={(ev) => ev.stopPropagation()}>
+                    <a href={mapUrl(e.map)} target="_blank" rel="noopener noreferrer"
+                      className="rounded-full border border-hairline px-3 py-1 text-xs font-semibold text-[#03c75a] active:scale-95 transition">네이버지도 ↗</a>
+                    <a href={gmapsUrl(e.map)} target="_blank" rel="noopener noreferrer"
+                      className="rounded-full border border-hairline px-3 py-1 text-xs font-semibold text-accent active:scale-95 transition">구글지도 ↗</a>
+                  </div>
+                )}
               </div>
             </motion.li>
           );
