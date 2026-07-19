@@ -4,7 +4,7 @@
 // Firestore 실시간 통신은 건드리지 않음 (same-origin GET만 캐시)
 // ============================================================
 
-const CACHE = "plan-cache-v1";
+const CACHE = "plan-cache-v2";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
@@ -24,7 +24,9 @@ self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET" || url.origin !== location.origin) return;
 
   e.respondWith(
-    fetch(e.request)
+    // cache:"no-cache" — 브라우저 HTTP 캐시(최대 10분)를 건너뛰고
+    // 서버에 항상 재검증 → 배포 후 즉시 새 버전 반영
+    fetch(e.request, { cache: "no-cache" })
       .then((res) => {
         if (res.ok) {
           const copy = res.clone();
