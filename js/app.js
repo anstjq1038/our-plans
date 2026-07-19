@@ -38,10 +38,10 @@
     store = {
       mode: "live",
       onComments(cb) {
-        base.collection("comments").orderBy("ts", "desc").limit(100)
+        base.collection("comments").orderBy("ts", "asc").limit(300)
           .onSnapshot((snap) => {
             const list = [];
-            snap.forEach((d) => list.push(d.data()));
+            snap.forEach((d) => list.push({ id: d.id, ...d.data() }));
             cb(list);
           });
       },
@@ -61,7 +61,7 @@
       onComments(cb) { commentCb = cb; cb(load().comments); },
       async addComment(c) {
         const d = load();
-        d.comments.unshift(c);
+        d.comments.push({ id: "local-" + Date.now(), ...c });
         save(d);
         if (commentCb) commentCb(d.comments);
       },
@@ -279,21 +279,60 @@
     renderName();
   });
 
-  // ---------- 의견 ----------
+  // ---------- 의견 (대댓글 지원) ----------
+  let replyTo = null; // 답글 대상 {id, name}
+
+  function fmtWhen(ts) {
+    return ts ? new Date(ts).toLocaleString("ko-KR", {
+      month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit",
+    }) : "";
+  }
+
+  function commentHTML(c, isReply) {
+    const agent = c.agent ? `<span class="agent-badge">플래너</span>` : "";
+    return `<li class="${isReply ? "reply" : ""} ${c.agent ? "from-agent" : ""}">
+      <div class="c-head">
+        <span class="who">${esc(c.name)}</span>${agent}
+        <span class="when">${fmtWhen(c.ts)}</span>
+      </div>
+      <div class="txt">${esc(c.text)}</div>
+      ${isReply ? "" : `<button class="reply-btn" data-id="${esc(c.id)}" data-name="${esc(c.name)}">답글</button>`}
+    </li>`;
+  }
+
   function renderComments(list) {
+    const box = $("comments");
     if (!list.length) {
-      $("comments").innerHTML = `<li class="empty">아직 의견이 없어요. 첫 의견을 남겨보세요!</li>`;
+      box.innerHTML = `<li class="empty">아직 의견이 없어요. 첫 의견을 남겨보세요!</li>`;
       return;
     }
-    $("comments").innerHTML = list.map((c) => {
-      const when = c.ts ? new Date(c.ts).toLocaleString("ko-KR", {
-        month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit",
-      }) : "";
-      return `<li>
-        <span class="who">${esc(c.name)}</span><span class="when">${when}</span>
-        <div class="txt">${esc(c.text)}</div>
-      </li>`;
-    }).join("");
+    // 최신 글이 위로 오되, 답글은 부모 바로 아래에 시간순으로
+    const roots = list.filter((c) => !c.replyTo).sort((a, b) => (b.ts || 0) - (a.ts || 0));
+    const byParent = {};
+    list.filter((c) => c.replyTo).forEach((c) => {
+      (byParent[c.replyTo] = byParent[c.replyTo] || []).push(c);
+    });
+    Object.values(byParent).forEach((arr) => arr.sort((a, b) => (a.ts || 0) - (b.ts || 0)));
+
+    box.innerHTML = roots.map((r) =>
+      commentHTML(r, false) + (byParent[r.id] || []).map((x) => commentHTML(x, true)).join("")
+    ).join("");
+
+    box.querySelectorAll(".reply-btn").forEach((b) =>
+      b.addEventListener("click", () => {
+        replyTo = { id: b.dataset.id, name: b.dataset.name };
+        renderReplyBar();
+        $("comment-text").focus();
+      }));
+  }
+
+  function renderReplyBar() {
+    const bar = $("reply-bar");
+    if (!replyTo) { bar.hidden = true; bar.innerHTML = ""; return; }
+    bar.hidden = false;
+    bar.innerHTML = `<span><b>${esc(replyTo.name)}</b>님에게 답글 다는 중</span>
+      <button id="cancel-reply" class="link-btn">취소</button>`;
+    $("cancel-reply").addEventListener("click", () => { replyTo = null; renderReplyBar(); });
   }
 
   $("send-comment").addEventListener("click", async () => {
@@ -301,8 +340,12 @@
     const text = $("comment-text").value.trim();
     if (!name) { alert("먼저 위에서 이름을 저장해주세요!"); return; }
     if (!text) return;
-    await store.addComment({ name, text, ts: Date.now() });
+    const c = { name, text, ts: Date.now() };
+    if (replyTo) c.replyTo = replyTo.id;
+    await store.addComment(c);
     $("comment-text").value = "";
+    replyTo = null;
+    renderReplyBar();
   });
 
   // ---------- 시작 ----------
