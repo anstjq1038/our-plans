@@ -288,11 +288,13 @@
     }) : "";
   }
 
-  function commentHTML(c, isReply) {
+  function commentHTML(c, isReply, parentName) {
     const agent = c.agent ? `<span class="agent-badge">플래너</span>` : "";
+    const to = isReply && parentName
+      ? `<span class="reply-to">→ ${esc(parentName)}님께</span>` : "";
     return `<li class="${isReply ? "reply" : ""} ${c.agent ? "from-agent" : ""}">
       <div class="c-head">
-        <span class="who">${esc(c.name)}</span>${agent}
+        <span class="who">${esc(c.name)}</span>${agent}${to}
         <span class="when">${fmtWhen(c.ts)}</span>
       </div>
       <div class="txt">${esc(c.text)}</div>
@@ -315,7 +317,8 @@
     Object.values(byParent).forEach((arr) => arr.sort((a, b) => (a.ts || 0) - (b.ts || 0)));
 
     box.innerHTML = roots.map((r) =>
-      commentHTML(r, false) + (byParent[r.id] || []).map((x) => commentHTML(x, true)).join("")
+      commentHTML(r, false) +
+      (byParent[r.id] || []).map((x) => commentHTML(x, true, r.name)).join("")
     ).join("");
 
     box.querySelectorAll(".reply-btn").forEach((b) =>
