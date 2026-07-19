@@ -386,7 +386,7 @@ h2 { font-size: 1.05rem; margin-bottom: 14px; }
 input[type="text"], textarea {
   flex: 1;
   font: inherit;
-  font-size: 0.9rem;
+  font-size: 16px; /* 16px 미만이면 iOS가 포커스 시 강제 확대함 */
   color: var(--ink);
   background: var(--page);
   border: 1px solid var(--hairline);
@@ -886,6 +886,73 @@ input:focus, textarea:focus { outline: 2px solid var(--accent); border-color: tr
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* ════════════════════════════════════════════
+   모바일 터치 최적화
+   ════════════════════════════════════════════ */
+html { -webkit-text-size-adjust: 100%; }
+body { -webkit-font-smoothing: antialiased; }
+
+/* 노치/상태바 안전영역 (PWA 전체화면 대응) */
+.page { padding-top: calc(16px + env(safe-area-inset-top, 0px)); }
+
+/* 터치 시 회색 깜빡임 제거 + 더블탭 확대 방지 */
+.btn, .day-tab, .nav-btn, .plan-card, .link-row, .map-link,
+.reply-btn, .del-btn, .checklist label, .back-link, .link-btn {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.btn, .day-tab, .nav-btn, .reply-btn, .del-btn {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* 터치 기기: 호버 효과 잔상 제거 (탭 후 떠오른 채 고정되는 문제) */
+@media (hover: none) {
+  .plan-card:hover { transform: none; box-shadow: var(--shadow); border-color: var(--ring); }
+  .link-row:hover { transform: none; background: transparent; border-color: var(--hairline); }
+  .day-tab:not(.active):hover { border-color: var(--hairline); color: var(--ink-2); }
+  .map-link:hover { background: transparent; border-color: var(--hairline); }
+  .reply-btn:hover { color: var(--muted); border-color: var(--hairline); }
+  .del-btn:hover { color: var(--muted); border-color: var(--hairline); }
+  .nav-btn:hover { background: none; }
+  .btn.primary:hover { filter: none; }
+}
+
+/* 상세 화면: 뒤로가기가 항상 위에 떠 있음 (반투명 블러 바) */
+.back-link {
+  position: sticky;
+  top: 0;
+  z-index: 90;
+  display: block;
+  margin: 0 -16px;
+  padding: calc(10px + env(safe-area-inset-top, 0px)) 16px 10px;
+  background: color-mix(in srgb, var(--page) 85%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* 일정 Day 탭이 스크롤을 따라다님 — 긴 일정에서 날짜 전환 편하게 */
+#sec-days .day-tabs {
+  position: sticky;
+  top: calc(44px + env(safe-area-inset-top, 0px));
+  z-index: 5;
+  background: var(--surface);
+  padding: 8px 0;
+  margin: -8px 0 6px;
+}
+
+/* 폰: 터치 타깃을 손가락 크기에 맞게 */
+@media (max-width: 480px) {
+  .btn { padding: 12px 20px; }
+  .day-tab { padding: 9px 16px; }
+  .reply-btn, .del-btn { padding: 7px 16px; font-size: 0.8rem; }
+  .map-link { padding: 6px 12px; }
+  .link-row { padding: 13px 14px; }
+  .checklist label { padding: 5px 0; }
+  .nav-btn { padding: 8px 4px 6px; }
+  input[type="text"], textarea { padding: 12px 14px; }
 }
 
 /* ============ 푸터 ============ */
