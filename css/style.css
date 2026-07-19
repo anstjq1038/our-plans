@@ -297,6 +297,75 @@ input:focus, textarea:focus { outline: 2px solid var(--accent); border-color: tr
   color: var(--c3);
 }
 
+/* ============ 확정 사항 ============ */
+.todo-card { border-left: 3px solid var(--c6); }
+.decision {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.decision:first-child { padding-top: 0; }
+.decision:last-child { border-bottom: none; padding-bottom: 0; }
+.decision-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.decision-item {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--muted);
+  background: var(--page);
+  border: 1px solid var(--hairline);
+  padding: 2px 8px;
+  border-radius: 99px;
+}
+.decision-choice { font-weight: 700; font-size: 0.95rem; color: var(--accent); }
+.decision-why { font-size: 0.82rem; color: var(--ink-2); margin-top: 4px; }
+
+/* ============ 링크 ============ */
+.link-group { margin-bottom: 6px; }
+.link-group .sub-h { margin-top: 14px; }
+.link-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  text-decoration: none;
+  color: var(--ink);
+}
+.link-row:hover { border-color: var(--accent); background: var(--accent-soft); }
+.link-label { font-weight: 600; font-size: 0.88rem; white-space: nowrap; }
+.link-desc {
+  font-size: 0.76rem;
+  color: var(--muted);
+  flex: 1;
+  min-width: 0;
+}
+.link-arrow { color: var(--accent); font-weight: 700; }
+
+.map-link {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+  border: 1px solid var(--hairline);
+  border-radius: 99px;
+  padding: 3px 10px;
+}
+.map-link:hover { border-color: var(--accent); background: var(--accent-soft); }
+
+/* 추천 강조 */
+.pick-tag { background: var(--c4); color: #fff; }
+.listing.pick { background: var(--accent-soft); border-radius: 10px; padding: 12px; margin-bottom: 4px; }
+.car.pick { border-color: var(--accent); border-width: 2px; }
+.car-name .pick-tag { margin-left: 6px; }
+
 /* ============ 키-값 (항공편) ============ */
 .kv {
   display: grid;

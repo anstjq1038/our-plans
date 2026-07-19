@@ -22,11 +22,17 @@
     <!-- 요약 타일 -->
     <section class="stat-row" id="stat-row"></section>
 
-    <!-- 아직 안 정해진 것 -->
+    <!-- 확정 사항 -->
     <section class="card open-card">
-      <h2>❓ 아직 안 정한 것</h2>
-      <ul class="open-list" id="open-questions"></ul>
-      <p class="hint">아래 "의견 남기기"에 자유롭게 적어주세요 👇</p>
+      <h2>✅ 확정안 (이유 포함)</h2>
+      <div id="decided"></div>
+      <p class="hint">바꾸고 싶은 게 있으면 맨 아래 의견에 남겨주세요 👇</p>
+    </section>
+
+    <!-- 예약 할 일 -->
+    <section class="card todo-card">
+      <h2>📋 지금 예약할 것</h2>
+      <ul class="open-list" id="todos"></ul>
     </section>
 
     <!-- 항공 -->
@@ -80,6 +86,12 @@
         <p class="hint">체크 상태는 각자 브라우저에 저장돼요.</p>
       </section>
     </div>
+
+    <!-- 링크 모음 -->
+    <section class="card">
+      <h2>🔗 예약 &amp; 참고 링크</h2>
+      <div id="links"></div>
+    </section>
 
     <!-- 이름 -->
     <section class="card name-card">

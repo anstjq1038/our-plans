@@ -69,11 +69,16 @@
   }
 
   // ---------- 헤더 & 요약 ----------
+  function fmtDate(iso) {
+    const d = new Date(iso + "T00:00:00");
+    return `${d.getMonth() + 1}월 ${d.getDate()}일(${"일월화수목금토"[d.getDay()]})`;
+  }
+
   function renderHeader() {
     document.title = P.title;
     $("trip-title").textContent = P.title;
     $("trip-sub").textContent =
-      `${P.destination} · ${P.origin} 출발 · ${P.members.join(", ")}`;
+      `${fmtDate(P.startDate)} ~ ${fmtDate(P.endDate)} · ${P.origin} 출발 · ${P.members.join(", ")}`;
 
     const badge = $("storage-badge");
     if (store.mode === "live") {
@@ -83,18 +88,56 @@
       badge.textContent = "로컬 모드 (미리보기)";
     }
 
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const start = new Date(P.startDate + "T00:00:00");
+    const end = new Date(P.endDate + "T00:00:00");
+    const diff = Math.round((start - today) / 86400000);
+    let dday;
+    if (diff > 0) dday = "D-" + diff;
+    else if (today <= end) dday = "여행 중!";
+    else dday = "여행 끝";
+
     const total = P.budget.reduce((s, b) => s + b.amount, 0);
     $("stat-row").innerHTML = `
-      <div class="stat"><div class="label">날짜</div><div class="value accent">${P.datesConfirmed ? "확정" : "미정"}</div></div>
+      <div class="stat"><div class="label">출발까지</div><div class="value accent">${dday}</div></div>
       <div class="stat"><div class="label">일정</div><div class="value">${P.nights}박 ${P.totalDays}일</div></div>
       <div class="stat"><div class="label">인원</div><div class="value">${P.members.length}명</div></div>
       <div class="stat"><div class="label">1인 예산</div><div class="value">${won(total)}</div></div>`;
   }
 
-  // ---------- 아직 안 정한 것 ----------
-  function renderOpen() {
-    $("open-questions").innerHTML = P.openQuestions
-      .map((q) => `<li>${esc(q)}</li>`).join("");
+  // 네이버 지도 검색 링크 (모바일에서 누르면 지도앱/웹으로 열림)
+  const mapUrl = (q) => "https://map.naver.com/p/search/" + encodeURIComponent(q);
+
+  // ---------- 확정 사항 ----------
+  function renderDecided() {
+    $("decided").innerHTML = P.decided.map((d) => `
+      <div class="decision">
+        <div class="decision-head">
+          <span class="decision-item">${esc(d.item)}</span>
+          <span class="decision-choice">${esc(d.choice)}</span>
+        </div>
+        <div class="decision-why">${esc(d.why)}</div>
+      </div>`).join("");
+  }
+
+  // ---------- 예약 할 일 ----------
+  function renderTodos() {
+    $("todos").innerHTML = P.todos.map((t) => `<li>${esc(t)}</li>`).join("");
+  }
+
+  // ---------- 링크 모음 ----------
+  function renderLinks() {
+    const groups = [...new Set(P.links.map((l) => l.group))];
+    $("links").innerHTML = groups.map((g) => `
+      <div class="link-group">
+        <h3 class="sub-h">${esc(g)}</h3>
+        ${P.links.filter((l) => l.group === g).map((l) => `
+          <a class="link-row" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">
+            <span class="link-label">${esc(l.label)}</span>
+            <span class="link-desc">${esc(l.desc)}</span>
+            <span class="link-arrow">↗</span>
+          </a>`).join("")}
+      </div>`).join("");
   }
 
   // ---------- 항공편 ----------
@@ -124,7 +167,7 @@
 
   function renderDay() {
     const d = P.days[activeDay];
-    $("day-theme").textContent = d.theme;
+    $("day-theme").textContent = d.date ? `${fmtDate(d.date)} — ${d.theme}` : d.theme;
     $("timeline").innerHTML = d.events.map((e) => {
       const color = TYPE_COLORS[e.type] || "var(--muted)";
       return `<li>
@@ -133,6 +176,7 @@
         <div class="body">
           <div class="title">${esc(e.title)}<span class="type-chip" style="--chip:${color}">${esc(e.type)}</span></div>
           ${e.note ? `<div class="note">${esc(e.note)}</div>` : ""}
+          ${e.map ? `<a class="map-link" href="${esc(mapUrl(e.map))}" target="_blank" rel="noopener noreferrer">📍 지도에서 보기</a>` : ""}
         </div>
       </li>`;
     }).join("");
@@ -141,8 +185,8 @@
   // ---------- 렌터카 ----------
   function renderCars() {
     $("cars").innerHTML = P.cars.map((c) => `
-      <div class="car ${c.status === "unknown" ? "unknown" : ""}">
-        <div class="car-name">${esc(c.name)}</div>
+      <div class="car ${c.unknown ? "unknown" : ""} ${c.pick ? "pick" : ""}">
+        <div class="car-name">${esc(c.name)}${c.pick ? `<span class="tag pick-tag">추천</span>` : ""}</div>
         <div class="car-price">${esc(c.price)}</div>
         <div class="car-extra">${esc(c.extra)}</div>
         <div class="car-note">${esc(c.note)}</div>
@@ -154,13 +198,15 @@
   // ---------- 숙소 ----------
   function renderStays() {
     $("stays").innerHTML = P.stays.map((s) => `
-      <div class="listing">
+      <div class="listing ${s.pick ? "pick" : ""}">
         <div class="listing-head">
           <span class="listing-name">${esc(s.name)}</span>
+          ${s.pick ? `<span class="tag pick-tag">추천</span>` : ""}
           <span class="tag">${esc(s.area)}</span>
         </div>
         <div class="listing-sub">${esc(s.rooms)}</div>
         <div class="listing-note">${esc(s.note)}</div>
+        <a class="map-link" href="${esc(mapUrl(s.name + " 제주"))}" target="_blank" rel="noopener noreferrer">📍 지도·후기 보기</a>
       </div>`).join("");
   }
 
@@ -174,6 +220,7 @@
         </div>
         <div class="listing-sub">${esc(f.area)}</div>
         <div class="listing-note">${esc(f.note)}</div>
+        <a class="map-link" href="${esc(mapUrl(f.name + " " + f.area))}" target="_blank" rel="noopener noreferrer">📍 지도·후기 보기</a>
       </div>`).join("");
   }
 
@@ -260,7 +307,8 @@
 
   // ---------- 시작 ----------
   renderHeader();
-  renderOpen();
+  renderDecided();
+  renderTodos();
   renderFlight();
   renderTabs();
   renderDay();
@@ -269,6 +317,7 @@
   renderFoods();
   renderBudget();
   renderChecklist();
+  renderLinks();
   renderName();
   renderComments([]);
   store.onComments(renderComments);
