@@ -2,15 +2,13 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 투표: 누구나 읽고 쓰기 가능 (친구들 투표용)
-    match /trips/{tripId}/votes/{doc} {
-      allow read, write: if true;
-    }
-
-    // 댓글: 누구나 읽기/작성 가능, 수정·삭제는 불가 (변조 방지)
+    // 의견(댓글)
+    // - 읽기/작성: 링크를 아는 사람 누구나
+    // - 삭제: 허용 (본인 댓글만 지우도록 화면에서 제한)
+    // - 수정: 금지 — 남의 글을 다른 내용으로 바꿔치기하는 것 방지
     match /trips/{tripId}/comments/{doc} {
-      allow read, create: if true;
-      allow update, delete: if false;
+      allow read, create, delete: if true;
+      allow update: if false;
     }
 
     // 그 외 모든 경로는 차단

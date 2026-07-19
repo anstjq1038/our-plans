@@ -74,6 +74,13 @@
       async addComment(planId, c) {
         await planDoc(planId).collection("comments").add(c);
       },
+      // 원댓글을 지우면 달린 답글도 같이 삭제 (고아 답글 방지)
+      async deleteComment(planId, id, replyIds) {
+        const col = planDoc(planId).collection("comments");
+        const batch = db.batch();
+        [id, ...replyIds].forEach((x) => batch.delete(col.doc(x)));
+        await batch.commit();
+      },
     };
   } else {
     const key = (id) => "trip-" + id;
@@ -91,6 +98,13 @@
       async addComment(planId, c) {
         const d = load(planId);
         d.comments.push({ id: "local-" + Date.now(), ...c });
+        save(planId, d);
+        if (cbs[planId]) cbs[planId](d.comments);
+      },
+      async deleteComment(planId, id, replyIds) {
+        const d = load(planId);
+        const kill = new Set([id, ...replyIds]);
+        d.comments = d.comments.filter((c) => !kill.has(c.id));
         save(planId, d);
         if (cbs[planId]) cbs[planId](d.comments);
       },
@@ -380,6 +394,7 @@
     if (!v) { alert("이름을 입력해주세요!"); return; }
     localStorage.setItem(NAME_KEY, v);
     renderName();
+    renderComments(lastComments); // 내 댓글에 삭제 버튼 즉시 반영
   });
 
   // ---------- 의견 (대댓글) ----------
@@ -392,17 +407,25 @@
   function commentHTML(c, isReply, parentName) {
     const agent = c.agent ? `<span class="agent-badge">플래너</span>` : "";
     const to = isReply && parentName ? `<span class="reply-to">→ ${esc(parentName)}님께</span>` : "";
+    // 내가 쓴 댓글에만 삭제 버튼 (로그인이 없으므로 이름 기준)
+    const mine = !c.agent && getName() && c.name === getName();
     return `<li class="${isReply ? "reply" : ""} ${c.agent ? "from-agent" : ""}">
       <div class="c-head">
         <span class="who">${esc(c.name)}</span>${agent}${to}
         <span class="when">${fmtWhen(c.ts)}</span>
       </div>
       <div class="txt">${esc(c.text)}</div>
-      ${isReply ? "" : `<button class="reply-btn" data-id="${esc(c.id)}" data-name="${esc(c.name)}">답글</button>`}
+      <div class="c-actions">
+        ${isReply ? "" : `<button class="reply-btn" data-id="${esc(c.id)}" data-name="${esc(c.name)}">답글</button>`}
+        ${mine ? `<button class="del-btn" data-id="${esc(c.id)}">삭제</button>` : ""}
+      </div>
     </li>`;
   }
 
+  let lastComments = [];
+
   function renderComments(list) {
+    lastComments = list;
     const box = $("comments");
     if (!list.length) {
       box.innerHTML = `<li class="empty">아직 의견이 없어요. 첫 의견을 남겨보세요!</li>`;
@@ -424,6 +447,27 @@
         replyTo = { id: b.dataset.id, name: b.dataset.name };
         renderReplyBar();
         $("comment-text").focus();
+      }));
+
+    box.querySelectorAll(".del-btn").forEach((b) =>
+      b.addEventListener("click", async () => {
+        const id = b.dataset.id;
+        const replies = (byParent[id] || []).map((x) => x.id);
+        const msg = replies.length
+          ? `이 의견과 달린 답글 ${replies.length}개가 함께 삭제됩니다. 지울까요?`
+          : "이 의견을 삭제할까요?";
+        if (!confirm(msg)) return;
+        b.disabled = true;
+        try {
+          await store.deleteComment(currentPlan.id, id, replies);
+          // 답글 달던 대상이 사라졌으면 답글 모드 해제
+          if (replyTo && (replyTo.id === id || replies.includes(replyTo.id))) {
+            replyTo = null; renderReplyBar();
+          }
+        } catch (e) {
+          alert("삭제에 실패했어요: " + e.message);
+          b.disabled = false;
+        }
       }));
   }
 
