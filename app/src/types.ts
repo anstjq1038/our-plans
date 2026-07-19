@@ -88,6 +88,11 @@ export interface Plan {
   budget?: { category: string; amount: number }[];
   checklist?: string[];
   links?: { group: string; label: string; url: string; desc: string }[];
+  // 화면에서 직접 추가한 계획용
+  isUser?: boolean; // Firestore plans 컬렉션 출신
+  uid?: string; // 만든 사람
+  memo?: string;
+  ts?: number;
 }
 
 export interface Comment {

@@ -1,7 +1,11 @@
 import { useRef, useState } from "react";
-import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { PLANS } from "../data/plans";
+import { deleteDoc, doc } from "firebase/firestore";
+import { db } from "../lib/firebase";
+import { usePlans } from "../hooks/usePlans";
+import { useAuth } from "../hooks/useAuth";
+import { PlanForm } from "../components/PlanForm";
 import type { Plan, PlanDay } from "../types";
 import { TYPE_COLORS, dateText, ddayOf, fmtDate, mapUrl, won } from "../lib/util";
 import { Card, MapLink, StatusBadge, Tag } from "../components/ui";
@@ -34,14 +38,18 @@ function paneAvailable(p: Plan, key: PaneKey): boolean {
 export default function Detail() {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
-  const plan = PLANS.find((p) => p.id === id);
+  const { plans, ready } = usePlans();
+  const plan = plans.find((p) => p.id === id);
   const initialPane = (PANES.some((x) => x.key === searchParams.get("pane"))
     ? searchParams.get("pane") : "overview") as PaneKey;
   const [pane, setPane] = useState<PaneKey>(initialPane);
   const [dir, setDir] = useState(1);
   const { comments } = useComments(plan?.id ?? "none");
 
-  if (!plan) return <Navigate to="/" replace />;
+  if (!plan) {
+    if (!ready) return <div className="py-24 text-center text-sm text-muted">불러오는 중…</div>;
+    return <Navigate to="/" replace />;
+  }
   const panes = PANES.filter((x) => paneAvailable(plan, x.key));
 
   const go = (next: PaneKey) => {
@@ -91,7 +99,7 @@ export default function Detail() {
           transition={{ duration: 0.22, ease: [0.2, 0.7, 0.2, 1] }}
           drag="x" dragConstraints={{ left: 0, right: 0 }} dragElastic={0.12} onDragEnd={onDragEnd}
         >
-          {pane === "overview" && <Overview p={plan} />}
+          {pane === "overview" && (<><Overview p={plan} />{plan.isUser && <UserPlanExtras p={plan} />}</>)}
           {pane === "days" && <Days p={plan} />}
           {pane === "info" && <Info p={plan} />}
           {pane === "settle" && <Settle p={plan} />}
@@ -121,6 +129,50 @@ export default function Detail() {
         })}
       </nav>
     </div>
+  );
+}
+
+/* ───────── 직접 추가한 계획: 메모 + 소유자 수정·삭제 ───────── */
+function UserPlanExtras({ p }: { p: Plan }) {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [edit, setEdit] = useState(false);
+  const own = !!(user && p.uid && p.uid === user.uid);
+
+  const del = async () => {
+    if (!confirm(`"${p.title}" 계획을 삭제할까요?`)) return;
+    try {
+      await deleteDoc(doc(db, "plans", p.id));
+      navigate("/");
+    } catch (e: any) { alert("삭제 실패: " + e.message); }
+  };
+
+  return (
+    <>
+      {p.memo && (
+        <Card>
+          <h2 className="mb-2 text-[1.05rem] font-bold">📝 메모</h2>
+          <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink2">{p.memo}</p>
+        </Card>
+      )}
+      <Card>
+        <p className="text-[0.82rem] leading-relaxed text-muted">
+          이 계획은 화면에서 직접 만든 계획이에요. 상세 일정·맛집·예산 조사가 필요하면
+          <b className="text-ink2"> Claude에게 "이 계획 채워줘"</b>라고 말씀하세요.
+        </p>
+        {own && (
+          <div className="mt-3 flex gap-2">
+            <button onClick={() => setEdit(true)}
+              className="flex-1 rounded-xl border border-hairline py-2.5 text-sm font-semibold text-ink2 active:scale-95 transition">✏️ 수정</button>
+            <button onClick={del}
+              className="flex-1 rounded-xl border border-hairline py-2.5 text-sm font-semibold text-c6 active:scale-95 transition">🗑 삭제</button>
+          </div>
+        )}
+      </Card>
+      <AnimatePresence>
+        {edit && <PlanForm initial={p} onClose={() => setEdit(false)} onSaved={() => setEdit(false)} />}
+      </AnimatePresence>
+    </>
   );
 }
 
